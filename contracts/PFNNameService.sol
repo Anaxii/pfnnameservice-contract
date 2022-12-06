@@ -5,16 +5,8 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "contracts/Ownable.sol";
-// owner can set the metadata
-// owner can authorize set the name
-// owner can duplicate
-// anyone can set their primary name
-// owner can set the name of a smart contract if they are the owner of the smart contract
 // transfer a token to a domain evenly to all owners of the token
 // get the addresses of all owners of the token
-// set primary token
-// set 1 month renewal time
-// create subdomains
 
 interface IAllowList {
     // Set [addr] to have the admin role over the precompile
@@ -41,6 +33,7 @@ contract PFNNameService is Ownable, ERC1155 {
     Counters.Counter private _tokenIds;
 
     address public paymentToken;
+    address public puffinERC20;
 
     mapping(address => uint256) private primaryDomain;
     mapping(uint256 => address) private primaryDomainUser;
@@ -100,8 +93,6 @@ contract PFNNameService is Ownable, ERC1155 {
                 _burn(dOld.owner, oldId, balanceOf(dOld.owner, oldId));
             primaryDomain[dOld.owner] = 0;
         }
-
-
 
         _tokenIds.increment();
         uint256 itemId = _tokenIds.current();
@@ -220,8 +211,8 @@ contract PFNNameService is Ownable, ERC1155 {
             "ERC1155: caller is not token owner or approved"
         );
         require(IAllowList(0x0200000000000000000000000000000000000002).readAllowList(to) > 0, "PuffinERC20: User unauthorized");
-        require(!IPuffinERC20Deployer(owner()).isGlobalPaused(), "PuffinERC20: Global Pause");
-        require(!IPuffinERC20Deployer(owner()).isUserPaused(_msgSender()), "PuffinERC20: User Pause");
+        require(!IPuffinERC20Deployer(puffinERC20).isGlobalPaused(), "PuffinERC20: Global Pause");
+        require(!IPuffinERC20Deployer(puffinERC20).isUserPaused(_msgSender()), "PuffinERC20: User Pause");
         _safeTransferFrom(from, to, id, amount, data);
     }
 
@@ -237,8 +228,8 @@ contract PFNNameService is Ownable, ERC1155 {
             "ERC1155: caller is not token owner or approved"
         );
         require(IAllowList(0x0200000000000000000000000000000000000002).readAllowList(to) > 0, "PuffinERC20: User unauthorized");
-        require(!IPuffinERC20Deployer(owner()).isGlobalPaused(), "PuffinERC20: Global Pause");
-        require(!IPuffinERC20Deployer(owner()).isUserPaused(_msgSender()), "PuffinERC20: User Pause");
+        require(!IPuffinERC20Deployer(puffinERC20).isGlobalPaused(), "PuffinERC20: Global Pause");
+        require(!IPuffinERC20Deployer(puffinERC20).isUserPaused(_msgSender()), "PuffinERC20: User Pause");
         _safeBatchTransferFrom(from, to, ids, amounts, data);
     }
 }
