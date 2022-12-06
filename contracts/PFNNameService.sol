@@ -16,6 +16,26 @@ import "contracts/Ownable.sol";
 // set 1 month renewal time
 // create subdomains
 
+interface IAllowList {
+    // Set [addr] to have the admin role over the precompile
+    function setAdmin(address addr) external;
+
+    // Set [addr] to be enabled on the precompile contract.
+    function setEnabled(address addr) external;
+
+    // Set [addr] to have no role the precompile contract.
+    function setNone(address addr) external;
+
+    // Read the status of [addr].
+    function readAllowList(address addr) external view returns (uint256 role);
+}
+
+interface IPuffinERC20Deployer {
+    function isGlobalPaused() external view returns (bool);
+    function isUserPaused(address user) external view returns (bool);
+    function isTokenPaused(address user) external view returns (bool);
+}
+
 contract PFNNameService is Ownable, ERC1155 {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
@@ -186,5 +206,39 @@ contract PFNNameService is Ownable, ERC1155 {
             string memory sub = string.concat(string(d.subDomains[subDomainIndex[msg.sender]]), ".");
             _domain = string.concat(sub, _domain);
         }
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) public virtual override {
+        require(
+            from == _msgSender() || isApprovedForAll(from, _msgSender()),
+            "ERC1155: caller is not token owner or approved"
+        );
+        require(IAllowList(0x0200000000000000000000000000000000000002).readAllowList(to) > 0, "PuffinERC20: User unauthorized");
+        require(!IPuffinERC20Deployer(owner()).isGlobalPaused(), "PuffinERC20: Global Pause");
+        require(!IPuffinERC20Deployer(owner()).isUserPaused(_msgSender()), "PuffinERC20: User Pause");
+        _safeTransferFrom(from, to, id, amount, data);
+    }
+
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) public virtual override {
+        require(
+            from == _msgSender() || isApprovedForAll(from, _msgSender()),
+            "ERC1155: caller is not token owner or approved"
+        );
+        require(IAllowList(0x0200000000000000000000000000000000000002).readAllowList(to) > 0, "PuffinERC20: User unauthorized");
+        require(!IPuffinERC20Deployer(owner()).isGlobalPaused(), "PuffinERC20: Global Pause");
+        require(!IPuffinERC20Deployer(owner()).isUserPaused(_msgSender()), "PuffinERC20: User Pause");
+        _safeBatchTransferFrom(from, to, ids, amounts, data);
     }
 }
